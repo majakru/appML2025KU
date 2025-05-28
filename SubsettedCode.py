@@ -79,7 +79,7 @@ df['disease'] = labels
 
 # ---- Update the cell type for plotting ---# i.e. the cell type = ...
 cell_type = "Schwann cell"
-# Extract disease type from the file path (e.g., "type 1 diabetes mellitus")
+# Extract disease type from the file path (e.g., "type 1 diabetes mellitus") --> Also change for plot
 disease_type = ST2D.split("Schwann cell_")[-1].split("_subset")[0].replace(" ", "_")
 
 # Create a safe filename
