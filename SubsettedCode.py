@@ -21,11 +21,18 @@ adata_t2d = sc.read_h5ad(t2d_path)
 # adata_normal = adata_normal[np.random.choice(adata_normal.obs_names, 2000, replace=False), :].copy()
 # adata_t2d = adata_t2d[np.random.choice(adata_t2d.obs_names, 2000, replace=False), :].copy()
 
+
 #1: PCA on normal cells only --> reduce number of genes 
 #paramaters = genes 
 N_PCA_COMPONENTS = 1000
-pca = TruncatedSVD(n_components=N_PCA_COMPONENTS, random_state=42) #to save memory
+pca = TruncatedSVD(n_components=N_PCA_COMPONENTS, random_state=42) 
 X_normal_pca = pca.fit_transform(adata_normal.X) #reduction step --> size (# cells, PCA size(1000))
+
+#Scaling data 
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+X_normal_scaled = scaler.fit_transform(X_normal_pca)
 
 # Step 2: Train encoder on normal
 input_dim = N_PCA_COMPONENTS
@@ -39,13 +46,13 @@ decoded = Dense(input_dim, activation='sigmoid')(decoded)
 
 autoencoder = Model(inputs=input_layer, outputs=decoded)
 autoencoder.compile(optimizer='adam', loss='mse')
-autoencoder.fit(X_normal_pca, X_normal_pca, epochs=20, batch_size=16, shuffle=True, verbose=0)
+autoencoder.fit(X_normal_scaled, X_normal_scaled, epochs=20, batch_size=16, shuffle=True, verbose=0)
 
 encoder = Model(inputs=input_layer, outputs=encoded)
 
 #3:Encode all (normal + T2D)
-X_normal_all = pca.transform(adata_normal.X)
-X_t2d_all = pca.transform(adata_t2d.X)
+X_normal_all = scaler.transform(pca.transform(adata_normal.X))
+X_t2d_all = scaler.transform(pca.transform(adata_t2d.X))
 
 X_latent_normal = encoder.predict(X_normal_all)
 X_latent_t2d = encoder.predict(X_t2d_all)
@@ -66,3 +73,11 @@ sns.scatterplot(data=df, x="UMAP1", y="UMAP2", hue="disease", alpha=0.6, s=10, p
 plt.title("UMAP of Latent Space (type B pancreatic cell)")
 plt.tight_layout()
 plt.show()
+
+
+# Saving UMAP outputs --> note change name of saved png to ensure no overwrite
+os.makedirs("saved_umaps", exist_ok=True)
+plot_filename = "saved_umaps/type_B_pancreatic_cell_umap.png"
+plt.savefig(plot_filename, dpi=300)
+plt.close()
+print(f"✅ Saved UMAP plot to: {plot_filename}")
