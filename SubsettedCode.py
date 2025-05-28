@@ -10,21 +10,25 @@ import seaborn as sns
 import os
 
 # Paths to your subset files
-normal_path = "type B pancreatic cell_normal_subset.h5ad"
-t2d_path = "type B pancreatic cell_type 2 diabetes mellitus_subset.h5ad"
+normal_path = "Schwann cell_normal_subset.h5ad"
+ST2D = "Schwann cell_endocrine pancreas disorder_subset.h5ad"
 
 # Load both subsets
 adata_normal = sc.read_h5ad(normal_path)
-adata_t2d = sc.read_h5ad(t2d_path)
+adata_t2d = sc.read_h5ad(ST2D)
 
 # Optionally: limit cells to reduce memory if needed
 # adata_normal = adata_normal[np.random.choice(adata_normal.obs_names, 2000, replace=False), :].copy()
 # adata_t2d = adata_t2d[np.random.choice(adata_t2d.obs_names, 2000, replace=False), :].copy()
 
-
 #1: PCA on normal cells only --> reduce number of genes 
 #paramaters = genes 
-N_PCA_COMPONENTS = 1000
+
+
+"""
+Sccells: comps is 200
+"""
+N_PCA_COMPONENTS = 200
 pca = TruncatedSVD(n_components=N_PCA_COMPONENTS, random_state=42) 
 X_normal_pca = pca.fit_transform(adata_normal.X) #reduction step --> size (# cells, PCA size(1000))
 
@@ -59,7 +63,9 @@ X_latent_t2d = encoder.predict(X_t2d_all)
 
 #4: UMAP
 X_combined = np.concatenate([X_latent_normal, X_latent_t2d], axis=0)
-labels = ['normal'] * len(X_latent_normal) + ['type 2 diabetes mellitus'] * len(X_latent_t2d)
+
+#Also change these labels (after the first plus sign )
+labels = ['normal'] * len(X_latent_normal) + ['Schwann cell cell endocrine pancreas disorder'] * len(X_latent_t2d)
 
 umap_model = UMAP(n_components=2, random_state=42)
 X_umap = umap_model.fit_transform(X_combined)
@@ -68,16 +74,30 @@ X_umap = umap_model.fit_transform(X_combined)
 df = pd.DataFrame(X_umap, columns=['UMAP1', 'UMAP2'])
 df['disease'] = labels
 
+
+# Automatically generate a unique filename from the input file
+
+# ---- Update the cell type for plotting ---# i.e. the cell type = ...
+cell_type = "Schwann cell"
+# Extract disease type from the file path (e.g., "type 1 diabetes mellitus")
+disease_type = ST2D.split("Schwann cell_")[-1].split("_subset")[0].replace(" ", "_")
+
+# Create a safe filename
+filename = f"{cell_type.replace(' ', '_')}_{disease_type}.png"
+filepath = os.path.join("saved_umaps", filename)
+
+
+
+# Saving UMAP outputs
+os.makedirs("saved_umaps", exist_ok=True)
 plt.figure(figsize=(8, 6))
 sns.scatterplot(data=df, x="UMAP1", y="UMAP2", hue="disease", alpha=0.6, s=10, palette="Set1")
-plt.title("UMAP of Latent Space (type B pancreatic cell)")
+plt.title(f"UMAP of Latent Space ({cell_type}, {disease_type.replace('_', ' ')})")
 plt.tight_layout()
+plt.savefig(filepath, dpi=300)
 plt.show()
 
+print(f"✅ Saved UMAP to {filepath}")
 
-# Saving UMAP outputs --> note change name of saved png to ensure no overwrite
-os.makedirs("saved_umaps", exist_ok=True)
-plot_filename = "saved_umaps/type_B_pancreatic_cell_umap.png"
-plt.savefig(plot_filename, dpi=300)
-plt.close()
-print(f"✅ Saved UMAP plot to: {plot_filename}")
+
+
