@@ -28,6 +28,7 @@ adata_t2d = sc.read_h5ad(ST2D)
 """
 Sccells: comps is 200
 """
+#This value varies depending the cel using --> i.e. much larger for type b
 N_PCA_COMPONENTS = 200
 pca = TruncatedSVD(n_components=N_PCA_COMPONENTS, random_state=42) 
 X_normal_pca = pca.fit_transform(adata_normal.X) #reduction step --> size (# cells, PCA size(1000))
