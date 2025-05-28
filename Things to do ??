@@ -1,0 +1,7 @@
+Understanding quinn: 
+
+- Before PCA: Find optimial # of components
+- PCA all--> Healthy and sick 
+- Train the encoder on only healthy PCA 
+- Encode on all data
+
