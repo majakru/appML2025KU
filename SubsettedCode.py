@@ -64,8 +64,8 @@ X_latent_t2d = encoder.predict(X_t2d_all)
 #4: UMAP
 X_combined = np.concatenate([X_latent_normal, X_latent_t2d], axis=0)
 
-#Also change these labels (after the first plus sign )
-labels = ['normal'] * len(X_latent_normal) + ['Schwann cell cell endocrine pancreas disorder'] * len(X_latent_t2d)
+#Also change these labels (after the first plus sign ) --> FOR the legends labels
+labels = ['normal'] * len(X_latent_normal) + ['Schwann cell endocrine pancreas disorder'] * len(X_latent_t2d)
 
 umap_model = UMAP(n_components=2, random_state=42)
 X_umap = umap_model.fit_transform(X_combined)
