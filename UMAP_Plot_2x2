@@ -1,0 +1,51 @@
+all_latent = np.vstack([B_normal_latent, B_type_1_latent, B_type_2_latent, B_endocrine_latent])
+labels = (['Normal'] * len(B_normal_latent) + 
+          ['Type 1'] * len(B_type_1_latent) + 
+          ['Type 2'] * len(B_type_2_latent) + 
+          ['Endocrine'] * len(B_endocrine_latent))
+labels = np.array(labels)
+
+# Fit UMAP once on the entire combined latent space
+umap_model = umap.UMAP(random_state=42)
+embedding_all = umap_model.fit_transform(all_latent)
+
+# Create mask for each group
+mask_normal = labels == 'Normal'
+mask_type1 = labels == 'Type 1'
+mask_type2 = labels == 'Type 2'
+mask_endocrine = labels == 'Endocrine'
+
+# Prepare 2x2 figure
+fig, axs = plt.subplots(2, 2, figsize=(12, 12))
+axs = axs.flatten()
+
+# 0,0: Normal only
+axs[0].scatter(embedding_all[mask_normal, 0], embedding_all[mask_normal, 1], c='blue', alpha=0.5, label='Normal')
+axs[0].set_title("Normal Only")
+axs[0].legend()
+
+# 1,0: Normal + Type 1
+axs[2].scatter(embedding_all[mask_normal, 0], embedding_all[mask_normal, 1], c='blue', alpha=0.5, label='Normal')
+axs[2].scatter(embedding_all[mask_type1, 0], embedding_all[mask_type1, 1], c='red', alpha=0.5, label='Type 1')
+axs[2].set_title("Normal + Type 1")
+axs[2].legend()
+
+# 0,1: Normal + Type 2
+axs[1].scatter(embedding_all[mask_normal, 0], embedding_all[mask_normal, 1], c='blue', alpha=0.5, label='Normal')
+axs[1].scatter(embedding_all[mask_type2, 0], embedding_all[mask_type2, 1], c='green', alpha=0.5, label='Type 2')
+axs[1].set_title("Normal + Type 2")
+axs[1].legend()
+
+# 1,1: Normal + Endocrine Disorder
+axs[3].scatter(embedding_all[mask_normal, 0], embedding_all[mask_normal, 1], c='blue', alpha=0.5, label='Normal')
+axs[3].scatter(embedding_all[mask_endocrine, 0], embedding_all[mask_endocrine, 1], c='orange', alpha=0.5, label='Endocrine')
+axs[3].set_title("Normal + Endocrine")
+axs[3].legend()
+
+# Final touches
+for ax in axs:
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+plt.tight_layout()
+plt.show()
