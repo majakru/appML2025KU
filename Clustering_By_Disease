@@ -1,0 +1,128 @@
+import os
+import scanpy as sc
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+from sklearn.metrics import adjusted_rand_score
+import pandas as pd
+from sklearn.metrics import confusion_matrix
+
+# 1) Load + Label all four disease files
+adata_normal = sc.read_h5ad("pancreatic stellate cell_normal_subset.h5ad")
+adata_t1d   = sc.read_h5ad("pancreatic stellate cell_type 1 diabetes mellitus_subset.h5ad")
+adata_t2d   = sc.read_h5ad("pancreatic stellate cell_type 2 diabetes mellitus_subset.h5ad")
+adata_endocrine = sc.read_h5ad("pancreatic stellate cell_endocrine pancreas disorder_subset.h5ad")
+
+adata_normal.obs["disease"] = "normal"
+adata_t1d.obs["disease"]   = "type 1 diabetes"
+adata_t2d.obs["disease"]   = "type 2 diabetes"
+adata_endocrine.obs["disease"] = "endocrine pancreas disorder"
+
+
+cell_type = "Pancreatic Stellate Cell"
+
+# Combine into one AnnData
+adata = adata_normal.concatenate(
+    adata_t1d, 
+    adata_t2d, 
+    adata_endocrine, 
+    batch_key="source", 
+    uns_merge="unique"
+)
+
+# 3) Preprocessing (normalize, log, HVG, scale) ===
+sc.pp.normalize_total(adata, target_sum=1e4)
+sc.pp.log1p(adata)
+sc.pp.highly_variable_genes(adata, n_top_genes=1000, subset=False)
+print("Number of HVGs selected:", adata.var["highly_variable"].sum())
+sc.pp.scale(adata, max_value=10)
+adata = adata[:, adata.var["highly_variable"]]
+
+# PCA 
+sc.tl.pca(adata, n_comps=20, svd_solver="arpack")
+
+# Build neighborhood graph & UMAP 
+sc.pp.neighbors(adata, n_neighbors=15, n_pcs=20)
+sc.tl.umap(adata)
+
+# K-Means clustering on the first 10 PCs 
+X_pca10 = adata.obsm["X_pca"][:, :10]
+kmeans = KMeans(n_clusters=4, random_state=0).fit(X_pca10)
+adata.obs["kmeans_cluster"] = kmeans.labels_.astype(str)
+
+# Plot
+POINT_SIZE = 40
+ALPHA = 0.8
+FIGSIZE = (12, 6)
+
+fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=FIGSIZE)
+
+# Plot 1: UMAP colored by true disease
+sc.pl.umap(
+    adata,
+    color="disease",
+    ax=ax1,
+    size=POINT_SIZE,
+    alpha=ALPHA,
+    frameon=True,
+    legend_loc="right margin",
+    legend_fontsize=10,
+    show=False
+)
+leg1 = ax1.get_legend()
+leg1.set_frame_on(True)
+leg1.get_frame().set_edgecolor("black")
+leg1.get_frame().set_linewidth(0.8)
+ax1.set_title(f"{cell_type}: UMAP colored by disease", fontsize=14, pad=10)
+ax1.set_xlabel("UMAP 1", fontsize=12)
+ax1.set_ylabel("UMAP 2", fontsize=12)
+
+# Plot 2: UMAP colored by K-Means clusters
+sc.pl.umap(
+    adata,
+    color="kmeans_cluster",
+    ax=ax2,
+    size=POINT_SIZE,
+    alpha=ALPHA,
+    frameon=True,
+    legend_loc="right margin",
+    legend_fontsize=10,
+    show=False
+)
+leg2 = ax2.get_legend()
+leg2.set_frame_on(True)
+leg2.get_frame().set_edgecolor("black")
+leg2.get_frame().set_linewidth(0.8)
+ax2.set_title(f"{cell_type}: UMAP colored by K-Means clusters", fontsize=14, pad=10)
+ax2.set_xlabel("UMAP 1", fontsize=12)
+ax2.set_ylabel("UMAP 2", fontsize=12)
+
+fig.subplots_adjust(left=0.10, right=0.95, wspace=0.30)
+
+safe_name = cell_type.replace(" ", "_")
+output_filename = f"{safe_name}_umap_composite_4diseases.png"
+plt.tight_layout()
+plt.savefig(output_filename, dpi=150)
+plt.close()
+
+print(f"Saved composite UMAP figure to: {output_filename}")
+
+# Quantify clustering vs. true labels
+true_labels = adata.obs["disease"].astype("category").cat.codes.values
+cluster_labels = adata.obs["kmeans_cluster"].astype(int).values
+ari_score = adjusted_rand_score(true_labels, cluster_labels)
+print(f"Adjusted Rand Index (K-Means vs. disease): {ari_score:.3f}\n")
+
+# Build a confusion matrix with four rows now
+cm = confusion_matrix(true_labels, cluster_labels)
+
+disease_categories = list(adata.obs["disease"].cat.categories)
+
+df_cm = pd.DataFrame(
+    cm,
+    index=disease_categories,
+    columns=[f"cluster_{i}" for i in range(cm.shape[1])]
+)
+
+print("Confusion matrix (rows=true disease, cols=K-Means cluster):")
+print(df_cm)
