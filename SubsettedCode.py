@@ -17,9 +17,7 @@ ST2D = "Schwann cell_endocrine pancreas disorder_subset.h5ad"
 adata_normal = sc.read_h5ad(normal_path)
 adata_t2d = sc.read_h5ad(ST2D)
 
-# Optionally: limit cells to reduce memory if needed
-# adata_normal = adata_normal[np.random.choice(adata_normal.obs_names, 2000, replace=False), :].copy()
-# adata_t2d = adata_t2d[np.random.choice(adata_t2d.obs_names, 2000, replace=False), :].copy()
+False), :].copy()
 
 #1: PCA on normal cells only --> reduce number of genes 
 #paramaters = genes 
@@ -98,7 +96,7 @@ plt.tight_layout()
 plt.savefig(filepath, dpi=300)
 plt.show()
 
-print(f"✅ Saved UMAP to {filepath}")
+print(f" Saved UMAP to {filepath}")
 
 
 
