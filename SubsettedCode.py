@@ -17,12 +17,9 @@ ST2D = "Schwann cell_endocrine pancreas disorder_subset.h5ad"
 adata_normal = sc.read_h5ad(normal_path)
 adata_t2d = sc.read_h5ad(ST2D)
 
-False), :].copy()
 
 #1: PCA on normal cells only --> reduce number of genes 
 #paramaters = genes 
-
-
 """
 Sccells: comps is 200
 """
