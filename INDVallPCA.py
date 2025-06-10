@@ -107,7 +107,7 @@ plt.legend(title="disease", oc='lower left', bbox_to_anchor=(0, 0), fontsize="sm
 plt.savefig(filepath, dpi=300)
 plt.show()
 
-print(f"✅ Saved UMAP to {filepath}")
+print(f"Saved UMAP to {filepath}")
 
 
 
@@ -137,4 +137,4 @@ plt.tight_layout()
 plt.savefig(filepath_normal, dpi=300)
 plt.show()
 
-print(f"✅ Saved UMAP of normal cells to {filepath_normal}")
+print(f" Saved UMAP of normal cells to {filepath_normal}")
